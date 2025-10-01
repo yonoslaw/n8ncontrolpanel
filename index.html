@@ -168,7 +168,28 @@
 
             exportJsonBtn.addEventListener('click', () => {
                 const jsonString = JSON.stringify({ fields }, null, 2);
-                navigator.clipboard.writeText(jsonString).then(() => {
+
+                // Fallback for non-HTTPS environments
+                const copyToClipboard = (text) => {
+                    if (navigator.clipboard && window.isSecureContext) {
+                        return navigator.clipboard.writeText(text);
+                    } else {
+                        // Fallback using textarea
+                        const textArea = document.createElement("textarea");
+                        textArea.value = text;
+                        textArea.style.position = "fixed";
+                        textArea.style.left = "-999999px";
+                        document.body.appendChild(textArea);
+                        textArea.focus();
+                        textArea.select();
+                        return new Promise((resolve, reject) => {
+                            document.execCommand('copy') ? resolve() : reject();
+                            textArea.remove();
+                        });
+                    }
+                };
+
+                copyToClipboard(jsonString).then(() => {
                     alert('JSON skopiowany do schowka!');
                 }).catch(err => {
                     console.error('Błąd kopiowania JSON: ', err);
