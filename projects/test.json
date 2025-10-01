@@ -1,0 +1,42 @@
+{
+  "fields": [
+    {
+      "id": "1759316149744",
+      "type": "string",
+      "name": "prompt",
+      "value": "a\nb\nc\nd\ne\n"
+    },
+    {
+      "id": "1759316175122",
+      "type": "bool",
+      "name": "Nano Banan",
+      "value": true
+    },
+    {
+      "id": "1759320118082",
+      "type": "float",
+      "name": "Nowe Pole",
+      "value": "3.07",
+      "min": "1",
+      "max": "10"
+    },
+    {
+      "id": "1759320881458",
+      "type": "int",
+      "name": "Nowe Pole_1",
+      "value": 0
+    },
+    {
+      "id": "1759320884211",
+      "type": "enum",
+      "name": "Nowe Pole_2",
+      "value": "asdas",
+      "options": [
+        "opcja 1",
+        "opcja 2d",
+        "asdas",
+        "asdasd"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>N8N Control Panel - Projekty</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4">
+        <header class="flex justify-between items-center mb-8">
+            <h1 class="text-3xl font-bold">Moje Projekty</h1>
+            <div class="flex gap-2">
+                <input type="text" id="new-project-name" class="p-2 border rounded" placeholder="Nazwa nowego projektu...">
+                <button id="add-project-btn" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Stwórz nowy projekt</button>
+            </div>
+        </header>
+
+        <div id="projects-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Project cards will be inserted here -->
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const projectsList = document.getElementById('projects-list');
+            const addProjectBtn = document.getElementById('add-project-btn');
+            const newProjectNameInput = document.getElementById('new-project-name');
+
+            const fetchProjects = async () => {
+                try {
+                    const response = await fetch('/api/projects');
+                    const projects = await response.json();
+                    renderProjects(projects);
+                } catch (error) {
+                    console.error('Error fetching projects:', error);
+                    projectsList.innerHTML = '<p class="text-red-500">Nie udało się załadować projektów.</p>';
+                }
+            };
+
+            const renderProjects = (projects) => {
+                projectsList.innerHTML = '';
+                if (projects.length === 0) {
+                    projectsList.innerHTML = '<p class="text-gray-500">Nie masz jeszcze żadnych projektów. Stwórz nowy!</p>';
+                    return;
+                }
+                projects.forEach(name => {
+                    const card = document.createElement('div');
+                    card.className = 'bg-white p-4 rounded-lg shadow flex flex-col justify-between';
+                    
+                    card.innerHTML = `
+                        <div>
+                            <h2 class="text-xl font-bold truncate" title="${name}">${name}</h2>
+                            <p class="text-sm text-gray-500">Kliknij Otwórz, aby edytować</p>
+                        </div>
+                        <div class="flex justify-end items-center gap-2 mt-4">
+                            <button data-action="copy-url" data-name="${name}" class="text-gray-400 hover:text-gray-600 p-1" title="Kopiuj URL do API">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 0 012-2h8a2 0 012 2v2m-6 12h8a2 0 002-2v-8a2 0 00-2-2h-8a2 0 00-2 2v8a2 0 002 2z" />
+                                </svg>
+                            </button>
+                            <button data-action="delete" data-name="${name}" class="text-sm bg-red-500 text-white py-1 px-2 rounded hover:bg-red-600">Usuń</button>
+                            <a href="/project.html?name=${name}" class="text-sm bg-green-500 text-white py-1 px-2 rounded hover:bg-green-600">Otwórz</a>
+                        </div>
+                    `;
+                    projectsList.appendChild(card);
+                });
+            };
+
+            const createProject = async () => {
+                const name = newProjectNameInput.value.trim();
+                if (!name) {
+                    alert('Nazwa projektu nie może być pusta.');
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/api/projects', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name })
+                    });
+
+                    if (response.status === 201) {
+                        newProjectNameInput.value = '';
+                        fetchProjects();
+                    } else {
+                        const message = await response.text();
+                        alert(`Błąd: ${message}`);
+                    }
+                } catch (error) {
+                    console.error('Error creating project:', error);
+                    alert('Wystąpił błąd serwera podczas tworzenia projektu.');
+                }
+            };
+
+            const deleteProject = async (name) => {
+                if (!confirm(`Czy na pewno chcesz usunąć projekt "${name}"? Tej operacji nie można cofnąć.`)) {
+                    return;
+                }
+
+                try {
+                    const response = await fetch(`/api/projects/${name}`, { method: 'DELETE' });
+                    if (response.ok) {
+                        fetchProjects();
+                    } else {
+                        const message = await response.text();
+                        alert(`Błąd: ${message}`);
+                    }
+                } catch (error) {
+                    console.error('Error deleting project:', error);
+                    alert('Wystąpił błąd serwera podczas usuwania projektu.');
+                }
+            };
+
+            addProjectBtn.addEventListener('click', createProject);
+            newProjectNameInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    createProject();
+                }
+            });
+
+            projectsList.addEventListener('click', (e) => {
+                const button = e.target.closest('button');
+                if (!button) return;
+
+                const action = button.dataset.action;
+                const name = button.dataset.name;
+
+                if (action === 'delete') {
+                    deleteProject(name);
+                } else if (action === 'copy-url') {
+                    const url = `${window.location.origin}/projects/${name}`;
+                    const originalContent = button.innerHTML;
+                    navigator.clipboard.writeText(url).then(() => {
+                        button.innerHTML = `<span class="text-green-500 text-xs">Skopiowano!</span>`;
+                        setTimeout(() => {
+                            button.innerHTML = originalContent;
+                        }, 2000);
+                    }).catch(err => {
+                        alert('Nie udało się skopiować adresu URL.');
+                        console.error('Copy failed', err);
+                    });
+                }
+            });
+
+            // Initial load
+            fetchProjects();
+        });
+    </script>
+
+</body>
+</html>

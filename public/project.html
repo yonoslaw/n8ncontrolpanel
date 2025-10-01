@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4">
+        <header class="flex justify-between items-center mb-4">
+            <h1 id="project-title" class="text-2xl font-bold">Ładowanie...</h1>
+            <div class="flex gap-2">
+                 <a href="/" class="bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Powrót do listy</a>
+                <button id="export-json-btn" class="bg-green-500 text-white p-2 rounded hover:bg-green-600">Export JSON</button>
+            </div>
+        </header>
+
+        <div id="fields-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <!-- Dynamic fields will be inserted here -->
+        </div>
+    </div>
+
+    <!-- Multiline Edit Modal -->
+    <div id="multiline-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-1/2 h-3/4 flex flex-col">
+            <h2 class="text-xl font-bold mb-4">Edytuj pole tekstowe</h2>
+            <textarea id="multiline-textarea" class="w-full h-full p-2 border rounded flex-grow font-mono"></textarea>
+            <div class="flex justify-end gap-2 mt-4">
+                <button id="cancel-multiline-btn" class="bg-gray-300 p-2 rounded">Anuluj</button>
+                <button id="save-multiline-btn" class="bg-blue-500 text-white p-2 rounded">Zapisz</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const fieldsContainer = document.getElementById('fields-container');
+            const exportJsonBtn = document.getElementById('export-json-btn');
+            const projectTitle = document.getElementById('project-title');
+            const multilineModal = document.getElementById('multiline-modal');
+            const multilineTextarea = document.getElementById('multiline-textarea');
+            const cancelMultilineBtn = document.getElementById('cancel-multiline-btn');
+            const saveMultilineBtn = document.getElementById('save-multiline-btn');
+
+            let fields = [];
+            let projectName = '';
+            let openSettings = new Set(); // UI state for open settings panels
+
+            const getProjectNameFromURL = () => {
+                const params = new URLSearchParams(window.location.search);
+                return params.get('name');
+            };
+
+            const debounce = (func, delay) => {
+                let timeout;
+                return function(...args) {
+                    const context = this;
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(context, args), delay);
+                };
+            };
+
+            const saveState = debounce(async () => {
+                if (!projectName) return;
+                try {
+                    await fetch(`/api/projects/${projectName}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ fields })
+                    });
+                } catch (error) {
+                    console.error('Failed to save project:', error);
+                    alert('Nie udało się zapisać projektu.');
+                }
+            }, 500);
+
+            const loadState = async () => {
+                projectName = getProjectNameFromURL();
+                if (!projectName) {
+                    projectTitle.textContent = 'Błąd: Nie znaleziono nazwy projektu.';
+                    return;
+                }
+                projectTitle.textContent = `Projekt: ${projectName}`;
+                try {
+                    const response = await fetch(`/api/projects/${projectName}`);
+                    if (!response.ok) {
+                        throw new Error('Project not found');
+                    }
+                    const data = await response.json();
+                    fields = data.fields || [];
+                    renderFields();
+                } catch (error) {
+                    console.error('Failed to load project:', error);
+                    projectTitle.textContent = `Błąd ładowania projektu: ${projectName}`;
+                    fieldsContainer.innerHTML = '<p class="text-red-500">Nie można załadować projektu. Sprawdź, czy nazwa jest poprawna lub wróć do listy projektów.</p>';
+                }
+            };
+
+            const renderFields = () => {
+                fieldsContainer.innerHTML = '';
+                fields.forEach(field => {
+                    const fieldWrapper = document.createElement('div');
+                    fieldWrapper.className = 'bg-white p-4 rounded-lg shadow';
+                    fieldWrapper.dataset.id = field.id;
+
+                    let inputHtml = '';
+                    const isSettingsOpen = openSettings.has(field.id); // NEW LINE
+
+                    switch (field.type) {
+                        case 'string':
+                            inputHtml = `
+                                <div class="flex items-center gap-2 mt-2">
+                                    <input type="text" value="${field.value}" data-key="value" class="w-full p-2 border rounded bg-gray-50" readonly>
+                                    <button data-action="edit-multiline" class="bg-gray-200 p-2 rounded hover:bg-gray-300 whitespace-nowrap">Rozwiń</button>
+                                </div>
+                            `;
+                            break;
+                        case 'bool':
+                            inputHtml = `<input type="checkbox" ${field.value ? 'checked' : ''} data-key="value" class="h-6 w-6 mt-2">`;
+                            break;
+                        case 'int':
+                            inputHtml = `<input type="number" step="1" value="${field.value}" data-key="value" class="w-full p-2 border rounded mt-2">`;
+                            break;
+                        case 'float':
+                            const min = parseFloat(field.min) || 0;
+                            const max = parseFloat(field.max) || 1;
+                            const step = (max - min) / 100;
+                            inputHtml = `
+                                <div class="mt-2">
+                                    <div class="flex justify-end">
+                                        <button data-action="toggle-settings" class="text-xs text-gray-500 hover:text-gray-800">Ustawienia</button>
+                                    </div>
+                                    <div class="float-settings ${isSettingsOpen ? '' : 'hidden'} mt-1"> <!-- CHANGED -->
+                                        <div class="flex items-center justify-between gap-2 mb-2">
+                                            <label class="text-sm w-full">Min: <input type="number" value="${min}" data-key="min" class="w-full p-1 border rounded"></label>
+                                            <label class="text-sm w-full">Max: <input type="number" value="${max}" data-key="max" class="w-full p-1 border rounded"></label>
+                                        </div>
+                                    </div>
+                                    <input type="range" min="${min}" max="${max}" step="${step}" value="${field.value}" data-key="value" class="w-full">
+                                    <div class="text-center font-semibold mt-1">${field.value}</div>
+                                </div>
+                            `;
+                            break;
+                        case 'enum':
+                            const optionsHtml = field.options.map(opt => `<option value="${opt}" ${field.value === opt ? 'selected' : ''}>${opt}</option>`).join('');
+                            const optionsText = field.options.join('\n');
+                            inputHtml = `
+                                <div class="mt-2">
+                                    <div class="flex justify-end">
+                                        <button data-action="toggle-settings" class="text-xs text-gray-500 hover:text-gray-800">Ustawienia</button>
+                                    </div>
+                                    <div class="enum-settings ${isSettingsOpen ? '' : 'hidden'} mt-1"> <!-- CHANGED -->
+                                        <label class="text-sm w-full">Opcje (jedna na linię):
+                                            <textarea data-key="options" class="w-full p-1 border rounded mt-1 h-24 font-mono">${optionsText}</textarea>
+                                        </label>
+                                    </div>
+                                    <select data-key="value" class="w-full p-2 border rounded mt-2">
+                                        ${optionsHtml}
+                                    </select>
+                                </div>
+                            `;
+                            break;
+                        case 'image':
+                            inputHtml = `<input type="file" accept="image/*" data-key="value" class="w-full mt-2">
+                                         ${field.value ? `<img src="${field.value}" class="mt-2 max-h-32">` : ''}`;
+                            break;
+                    }
+
+                    fieldWrapper.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <input type="text" value="${field.name}" data-key="name" class="text-lg font-bold w-full mr-2" placeholder="Nazwa pola...">
+                            <button data-action="delete" class="text-red-500 hover:text-red-700">Usuń</button>
+                        </div>
+                        ${inputHtml}
+                    `;
+                    fieldsContainer.appendChild(fieldWrapper);
+                });
+                
+                // Add the "Add New Field" card
+                const addFieldCard = document.createElement('div');
+                addFieldCard.className = 'bg-gray-50 p-4 rounded-lg shadow border-2 border-dashed border-gray-300 flex flex-col items-center justify-center min-h-[160px]';
+                addFieldCard.innerHTML = `
+                    <h2 class="text-lg font-bold text-gray-600 mb-3">Dodaj nowe pole</h2>
+                    <div class="grid grid-cols-2 lg:grid-cols-3 gap-2 w-full">
+                        <button data-action="add" data-type="string" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">String</button>
+                        <button data-action="add" data-type="bool" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Boolean</button>
+                        <button data-action="add" data-type="int" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Int</button>
+                        <button data-action="add" data-type="float" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Float</button>
+                        <button data-action="add" data-type="enum" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Enum</button>
+                        <button data-action="add" data-type="image" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Image</button>
+                    </div>
+                `;
+                fieldsContainer.appendChild(addFieldCard);
+            };
+
+            const addField = (type) => {
+                const generateUniqueName = (baseName) => {
+                    let finalName = baseName;
+                    let counter = 1;
+                    const existingNames = new Set(fields.map(f => f.name.trim().replace(/[^a-zA-Z0-9]+/g, '_')));
+                    
+                    let sanitizedFinalName = finalName.trim().replace(/[^a-zA-Z0-9]+/g, '_');
+                    if (!sanitizedFinalName) sanitizedFinalName = 'pole'; // handle empty base name
+
+                    while (existingNames.has(sanitizedFinalName)) {
+                        finalName = `${baseName}_${counter}`;
+                        sanitizedFinalName = finalName.trim().replace(/[^a-zA-Z0-9]+/g, '_');
+                        counter++;
+                    }
+                    return finalName;
+                };
+
+                const newField = {
+                    id: Date.now().toString(),
+                    type: type,
+                    name: generateUniqueName('Nowe Pole'),
+                    value: ''
+                };
+                switch (newField.type) {
+                    case 'string': newField.value = ''; break;
+                    case 'bool': newField.value = false; break;
+                    case 'int': newField.value = 0; break;
+                    case 'float': 
+                        newField.value = 0.5; 
+                        newField.min = 0;
+                        newField.max = 1;
+                        break;
+                    case 'enum':
+                        newField.value = 'opcja 1';
+                        newField.options = ['opcja 1', 'opcja 2'];
+                        break;
+                    case 'image': newField.value = null; break;
+                }
+                fields.push(newField);
+                renderFields();
+                saveState();
+            };
+
+            const getFieldById = (id) => fields.find(f => f.id === id);
+
+            fieldsContainer.addEventListener('change', (e) => { // NEW EVENT LISTENER
+                const target = e.target;
+                const fieldWrapper = target.closest('[data-id]');
+                if (!fieldWrapper) return;
+                const fieldId = fieldWrapper.dataset.id;
+                const field = getFieldById(fieldId);
+                const key = target.dataset.key;
+
+                if (!field || !key) return;
+
+                if (field.type === 'enum' && key === 'options') {
+                    const newOptions = target.value.split('\n').map(o => o.trim()).filter(o => o);
+                    field.options = newOptions;
+                    if (!field.options.includes(field.value)) {
+                        field.value = field.options[0] || '';
+                    }
+                    renderFields();
+                    saveState();
+                }
+            });
+
+            fieldsContainer.addEventListener('input', (e) => {
+                const target = e.target;
+                const fieldWrapper = target.closest('[data-id]');
+                if (!fieldWrapper) return;
+                const fieldId = fieldWrapper.dataset.id;
+                const field = getFieldById(fieldId);
+                const key = target.dataset.key;
+
+                if (!field || !key) return;
+
+                // --- Name validation --- 
+                if (key === 'name') {
+                    const newName = target.value;
+                    const sanitizedNewName = newName.trim().replace(/[^a-zA-Z0-9]+/g, '_');
+
+                    const isDuplicate = fields.some(f => 
+                        f.id !== fieldId && 
+                        f.name.trim().replace(/[^a-zA-Z0-9]+/g, '_') === sanitizedNewName
+                    );
+
+                    const existingWarning = fieldWrapper.querySelector('.name-warning');
+                    if (existingWarning) existingWarning.remove();
+                    target.classList.remove('border-red-500');
+
+                    if (isDuplicate && sanitizedNewName) {
+                        target.classList.add('border-red-500');
+                        const warningMsg = document.createElement('p');
+                        warningMsg.className = 'text-red-500 text-xs mt-1 name-warning';
+                        warningMsg.textContent = 'Ta nazwa jest już używana.';
+                        target.after(warningMsg);
+                        return; // Stop processing and prevent saving
+                    } else {
+                        field.name = newName;
+                    }
+                }
+
+                // Prevent direct input on readonly string fields or enum options textarea
+                if ((field.type === 'string' && key === 'value') || (field.type === 'enum' && key === 'options')) return; // CHANGED
+
+                if (field.type === 'bool' && key === 'value') {
+                    field.value = target.checked;
+                } else if (field.type === 'image' && key === 'value') {
+                    const file = target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            field.value = event.target.result;
+                            renderFields(); 
+                            saveState();
+                        };
+                        reader.readAsDataURL(file);
+                        return; // Avoid double saving
+                    }
+                } else if (key !== 'name') { // Update value if not name (name is handled above)
+                    field[key] = target.value;
+                }
+                
+                if (field.type === 'float' && key === 'value') {
+                    // Update the text display for the slider
+                    target.nextElementSibling.textContent = target.value;
+                } else if (field.type === 'float' && (key === 'min' || key === 'max')) {
+                    renderFields(); // Re-render to update slider attributes
+                }
+
+                saveState();
+            });
+
+            fieldsContainer.addEventListener('click', (e) => {
+                const action = e.target.dataset.action;
+                const fieldId = e.target.closest('[data-id]')?.dataset.id; // CHANGED
+
+                if (action === 'delete') {
+                    if (window.confirm('Czy na pewno chcesz usunąć to pole?')) {
+                        fields = fields.filter(f => f.id !== fieldId);
+                        renderFields();
+                        saveState();
+                    }
+                } else if (action === 'add') {
+                    const type = e.target.dataset.type;
+                    addField(type);
+                } else if (action === 'edit-multiline') {
+                    const field = getFieldById(fieldId);
+                    if (field) {
+                        multilineModal.dataset.editingFieldId = fieldId;
+                        multilineTextarea.value = field.value;
+                        multilineModal.classList.remove('hidden');
+                        multilineModal.classList.add('flex');
+                    }
+                } else if (action === 'toggle-settings') {
+                    if (openSettings.has(fieldId)) { // CHANGED
+                        openSettings.delete(fieldId);
+                    } else {
+                        openSettings.add(fieldId);
+                    }
+                    renderFields(); // CHANGED
+                }
+            });
+
+            cancelMultilineBtn.addEventListener('click', () => {
+                multilineModal.classList.add('hidden');
+                multilineModal.classList.remove('flex');
+            });
+
+            saveMultilineBtn.addEventListener('click', () => {
+                const fieldId = multilineModal.dataset.editingFieldId;
+                const field = getFieldById(fieldId);
+                if (field) {
+                    field.value = multilineTextarea.value;
+                    renderFields();
+                    saveState();
+                    multilineModal.classList.add('hidden');
+                    multilineModal.classList.remove('flex');
+                }
+            });
+
+            exportJsonBtn.addEventListener('click', () => {
+                const configObject = fields.reduce((obj, field) => {
+                    const sanitizedName = field.name.trim().replace(/[^a-zA-Z0-9]+/g, '_');
+                    if (sanitizedName) {
+                        obj[sanitizedName] = field.value;
+                    }
+                    return obj;
+                }, {});
+
+                const jsonString = JSON.stringify(configObject, null, 2);
+                navigator.clipboard.writeText(jsonString).then(() => {
+                    alert('Skonfigurowany JSON został skopiowany do schowka!');
+                }).catch(err => {
+                    console.error('Błąd kopiowania JSON: ', err);
+                    alert('Nie udało się skopiować JSON.');
+                });
+            });
+
+            loadState();
+        });
+    </script>
+
+</body>
+</html>
