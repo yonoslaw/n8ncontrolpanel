@@ -1,18 +1,6 @@
 {
   "fields": [
     {
-      "id": "1759316149744",
-      "type": "string",
-      "name": "prompt",
-      "value": "a\nb\nc\nd\ne\n"
-    },
-    {
-      "id": "1759316175122",
-      "type": "bool",
-      "name": "Nano Banan",
-      "value": true
-    },
-    {
       "id": "1759320118082",
       "type": "float",
       "name": "Nowe Pole",
@@ -21,10 +9,10 @@
       "max": "10"
     },
     {
-      "id": "1759320881458",
-      "type": "int",
-      "name": "Nowe Pole_1",
-      "value": 0
+      "id": "1759316175122",
+      "type": "bool",
+      "name": "Nano Banan",
+      "value": true
     },
     {
       "id": "1759320884211",
@@ -37,6 +25,18 @@
         "asdas",
         "asdasd"
       ]
+    },
+    {
+      "id": "1759316149744",
+      "type": "string",
+      "name": "prompt",
+      "value": "a\nb\nc\nd\ne\n"
+    },
+    {
+      "id": "1759320881458",
+      "type": "int",
+      "name": "Nowe Pole_1",
+      "value": 0
     }
   ]
 }

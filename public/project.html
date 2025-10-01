@@ -6,6 +6,7 @@
     <title>Project Editor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
 <body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100 min-h-screen">
 
@@ -140,7 +141,7 @@
                 fieldsContainer.innerHTML = '';
                 fields.forEach(field => {
                     const fieldWrapper = document.createElement('div');
-                    fieldWrapper.className = 'bg-gradient-to-br from-gray-800 to-gray-900 p-5 rounded-xl shadow-xl border border-gray-700 hover:border-blue-500 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/20';
+                    fieldWrapper.className = 'bg-gradient-to-br from-gray-800 to-gray-900 p-5 rounded-xl shadow-xl border border-gray-700 hover:border-blue-500 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/20 cursor-move';
                     fieldWrapper.dataset.id = field.id;
 
                     let inputHtml = '';
@@ -235,6 +236,7 @@
                     fieldWrapper.innerHTML = `
                         <div class="flex justify-between items-center mb-3">
                             <div class="flex items-center gap-2 flex-1">
+                                <i class="fas fa-grip-vertical text-gray-600 cursor-move drag-handle" title="Przeciągnij aby zmienić kolejność"></i>
                                 <i class="fas ${getFieldIcon(field.type)} text-blue-400"></i>
                                 <input type="text" value="${field.name}" data-key="name" class="text-lg font-bold flex-1 bg-transparent border-b border-gray-700 focus:border-blue-500 text-gray-100 px-2 py-1 focus:outline-none transition-colors" placeholder="Nazwa pola...">
                             </div>
@@ -253,38 +255,62 @@
 
                 // Add the "Add New Field" card
                 const addFieldCard = document.createElement('div');
-                addFieldCard.className = 'bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-6 rounded-xl shadow-xl border-2 border-dashed border-gray-700 hover:border-blue-500 flex flex-col items-center justify-center min-h-[240px] transition-all duration-300 hover:shadow-blue-500/20';
+                addFieldCard.className = 'bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-4 rounded-xl shadow-xl border-2 border-dashed border-gray-700 hover:border-blue-500 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-blue-500/20';
                 addFieldCard.innerHTML = `
-                    <i class="fas fa-plus-circle text-5xl text-gray-600 mb-4"></i>
-                    <h2 class="text-lg font-bold text-gray-400 mb-4">Dodaj nowe pole</h2>
-                    <div class="grid grid-cols-2 lg:grid-cols-3 gap-2 w-full">
-                        <button data-action="add" data-type="string" class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-500/50">
+                    <i class="fas fa-plus-circle text-3xl text-gray-600 mb-3 group-hover:text-blue-400 transition-colors"></i>
+                    <h2 class="text-sm font-bold text-gray-400 mb-3">Dodaj nowe pole</h2>
+                    <div class="grid grid-cols-2 gap-1.5 w-full">
+                        <button data-action="add" data-type="string" class="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 shadow-lg hover:shadow-blue-500/50 text-xs">
                             <i class="fas fa-text-width"></i>
                             String
                         </button>
-                        <button data-action="add" data-type="bool" class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-500/50">
+                        <button data-action="add" data-type="bool" class="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 shadow-lg hover:shadow-blue-500/50 text-xs">
                             <i class="fas fa-toggle-on"></i>
-                            Boolean
+                            Bool
                         </button>
-                        <button data-action="add" data-type="int" class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-500/50">
+                        <button data-action="add" data-type="int" class="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 shadow-lg hover:shadow-blue-500/50 text-xs">
                             <i class="fas fa-hashtag"></i>
                             Int
                         </button>
-                        <button data-action="add" data-type="float" class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-500/50">
+                        <button data-action="add" data-type="float" class="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 shadow-lg hover:shadow-blue-500/50 text-xs">
                             <i class="fas fa-sliders-h"></i>
                             Float
                         </button>
-                        <button data-action="add" data-type="enum" class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-500/50">
+                        <button data-action="add" data-type="enum" class="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 shadow-lg hover:shadow-blue-500/50 text-xs">
                             <i class="fas fa-list"></i>
                             Enum
                         </button>
-                        <button data-action="add" data-type="image" class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-500/50">
+                        <button data-action="add" data-type="image" class="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 shadow-lg hover:shadow-blue-500/50 text-xs">
                             <i class="fas fa-image"></i>
                             Image
                         </button>
                     </div>
                 `;
                 fieldsContainer.appendChild(addFieldCard);
+
+                // Initialize SortableJS for drag-and-drop
+                if (window.sortableInstance) {
+                    window.sortableInstance.destroy();
+                }
+
+                window.sortableInstance = new Sortable(fieldsContainer, {
+                    animation: 150,
+                    handle: '.drag-handle',
+                    draggable: '[data-id]',
+                    ghostClass: 'opacity-50',
+                    onEnd: function(evt) {
+                        // Reorder fields array based on new DOM order
+                        const newOrder = [];
+                        const fieldElements = fieldsContainer.querySelectorAll('[data-id]');
+                        fieldElements.forEach(el => {
+                            const fieldId = el.dataset.id;
+                            const field = fields.find(f => f.id === fieldId);
+                            if (field) newOrder.push(field);
+                        });
+                        fields = newOrder;
+                        saveState();
+                    }
+                });
             };
 
             const addField = (type) => {
