@@ -45,7 +45,7 @@
                 projects.forEach(name => {
                     const card = document.createElement('a');
                     card.href = `/project.html?name=${name}`;
-                    card.className = 'bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-xl shadow-xl border border-gray-700 hover:border-blue-500 transition-all duration-300 flex flex-col justify-between hover:shadow-2xl hover:shadow-blue-500/20 group cursor-pointer relative';
+                    card.className = 'bg-gradient-to-br from-gray-800 to-gray-900 p-6 rounded-xl shadow-xl border border-gray-700 hover:border-blue-500 transition-all duration-300 flex flex-col justify-between hover:shadow-2xl hover:shadow-blue-500/10 group cursor-pointer relative';
 
                     card.innerHTML = `
                         <div class="mb-4">
@@ -67,7 +67,7 @@
 
                 // Add "Create New Project" card
                 const newProjectCard = document.createElement('div');
-                newProjectCard.className = 'bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-6 rounded-xl shadow-xl border-2 border-dashed border-gray-700 hover:border-blue-500 flex flex-col items-center justify-center min-h-[180px] transition-all duration-300 hover:shadow-blue-500/20 cursor-pointer group';
+                newProjectCard.className = 'bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-6 rounded-xl shadow-xl border-2 border-dashed border-gray-700 hover:border-blue-500 flex flex-col items-center justify-center min-h-[180px] transition-all duration-300 hover:shadow-blue-500/10 cursor-pointer group';
                 newProjectCard.id = 'new-project-card';
                 newProjectCard.innerHTML = `
                     <i class="fas fa-plus-circle text-5xl text-gray-600 mb-4 group-hover:text-blue-400 transition-colors"></i>

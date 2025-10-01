@@ -141,7 +141,7 @@
                 fieldsContainer.innerHTML = '';
                 fields.forEach(field => {
                     const fieldWrapper = document.createElement('div');
-                    fieldWrapper.className = 'bg-gradient-to-br from-gray-800 to-gray-900 p-5 rounded-xl shadow-xl border border-gray-700 hover:border-blue-500 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/20 cursor-move';
+                    fieldWrapper.className = 'bg-gradient-to-br from-gray-800 to-gray-900 p-5 rounded-xl shadow-xl border border-gray-700 hover:border-blue-500 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/10 cursor-move';
                     fieldWrapper.dataset.id = field.id;
 
                     let inputHtml = '';
@@ -255,7 +255,7 @@
 
                 // Add the "Add New Field" card
                 const addFieldCard = document.createElement('div');
-                addFieldCard.className = 'bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-4 rounded-xl shadow-xl border-2 border-dashed border-gray-700 hover:border-blue-500 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-blue-500/20';
+                addFieldCard.className = 'bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-4 rounded-xl shadow-xl border-2 border-dashed border-gray-700 hover:border-blue-500 flex flex-col items-center justify-center transition-all duration-300 hover:shadow-blue-500/10';
                 addFieldCard.innerHTML = `
                     <i class="fas fa-plus-circle text-3xl text-gray-600 mb-3 group-hover:text-blue-400 transition-colors"></i>
                     <h2 class="text-sm font-bold text-gray-400 mb-3">Dodaj nowe pole</h2>
