@@ -5,31 +5,56 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Project Editor</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body class="bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100 min-h-screen">
 
-    <div class="container mx-auto p-4">
-        <header class="flex justify-between items-center mb-4">
-            <h1 id="project-title" class="text-2xl font-bold">Ładowanie...</h1>
-            <div class="flex gap-2">
-                 <a href="/" class="bg-gray-500 text-white p-2 rounded hover:bg-gray-600">Powrót do listy</a>
-                <button id="export-json-btn" class="bg-green-500 text-white p-2 rounded hover:bg-green-600">Export JSON</button>
+    <div class="container mx-auto p-6">
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+            <div>
+                <h1 id="project-title" class="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                    <i class="fas fa-cube mr-3"></i>Ładowanie...
+                </h1>
+                <p class="text-gray-400 mt-2 ml-12">Edytor konfiguracji projektu</p>
+            </div>
+            <div class="flex gap-3 flex-wrap">
+                <a href="/" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2">
+                    <i class="fas fa-arrow-left"></i>
+                    Powrót
+                </a>
+                <button id="copy-url-btn" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2" title="Kopiuj URL do API">
+                    <i class="fas fa-link"></i>
+                    Kopiuj URL
+                </button>
+                <button id="export-json-btn" class="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-green-500/50">
+                    <i class="fas fa-file-export"></i>
+                    Export JSON
+                </button>
             </div>
         </header>
 
-        <div id="fields-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div id="fields-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <!-- Dynamic fields will be inserted here -->
         </div>
     </div>
 
     <!-- Multiline Edit Modal -->
-    <div id="multiline-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
-        <div class="bg-white p-6 rounded-lg shadow-lg w-1/2 h-3/4 flex flex-col">
-            <h2 class="text-xl font-bold mb-4">Edytuj pole tekstowe</h2>
-            <textarea id="multiline-textarea" class="w-full h-full p-2 border rounded flex-grow font-mono"></textarea>
-            <div class="flex justify-end gap-2 mt-4">
-                <button id="cancel-multiline-btn" class="bg-gray-300 p-2 rounded">Anuluj</button>
-                <button id="save-multiline-btn" class="bg-blue-500 text-white p-2 rounded">Zapisz</button>
+    <div id="multiline-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50">
+        <div class="bg-gradient-to-br from-gray-800 to-gray-900 border border-gray-700 p-6 rounded-xl shadow-2xl w-11/12 md:w-3/4 lg:w-1/2 h-3/4 flex flex-col">
+            <h2 class="text-2xl font-bold mb-4 text-gray-100 flex items-center gap-2">
+                <i class="fas fa-edit text-blue-400"></i>
+                Edytuj pole tekstowe
+            </h2>
+            <textarea id="multiline-textarea" class="w-full h-full p-4 bg-gray-900 border border-gray-700 rounded-lg flex-grow font-mono text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+            <div class="flex justify-end gap-3 mt-4">
+                <button id="cancel-multiline-btn" class="bg-gray-700 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition-all duration-200 flex items-center gap-2">
+                    <i class="fas fa-times"></i>
+                    Anuluj
+                </button>
+                <button id="save-multiline-btn" class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-6 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 shadow-lg hover:shadow-blue-500/50">
+                    <i class="fas fa-check"></i>
+                    Zapisz
+                </button>
             </div>
         </div>
     </div>
@@ -38,6 +63,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const fieldsContainer = document.getElementById('fields-container');
             const exportJsonBtn = document.getElementById('export-json-btn');
+            const copyUrlBtn = document.getElementById('copy-url-btn');
             const projectTitle = document.getElementById('project-title');
             const multilineModal = document.getElementById('multiline-modal');
             const multilineTextarea = document.getElementById('multiline-textarea');
@@ -46,7 +72,7 @@
 
             let fields = [];
             let projectName = '';
-            let openSettings = new Set(); // UI state for open settings panels
+            let openSettings = new Set();
 
             const getProjectNameFromURL = () => {
                 const params = new URLSearchParams(window.location.search);
@@ -79,10 +105,10 @@
             const loadState = async () => {
                 projectName = getProjectNameFromURL();
                 if (!projectName) {
-                    projectTitle.textContent = 'Błąd: Nie znaleziono nazwy projektu.';
+                    projectTitle.innerHTML = '<i class="fas fa-exclamation-triangle mr-3"></i>Błąd: Nie znaleziono nazwy projektu.';
                     return;
                 }
-                projectTitle.textContent = `Projekt: ${projectName}`;
+                projectTitle.innerHTML = `<i class="fas fa-cube mr-3"></i>${projectName}`;
                 try {
                     const response = await fetch(`/api/projects/${projectName}`);
                     if (!response.ok) {
@@ -93,53 +119,83 @@
                     renderFields();
                 } catch (error) {
                     console.error('Failed to load project:', error);
-                    projectTitle.textContent = `Błąd ładowania projektu: ${projectName}`;
-                    fieldsContainer.innerHTML = '<p class="text-red-500">Nie można załadować projektu. Sprawdź, czy nazwa jest poprawna lub wróć do listy projektów.</p>';
+                    projectTitle.innerHTML = `<i class="fas fa-exclamation-triangle mr-3"></i>Błąd ładowania: ${projectName}`;
+                    fieldsContainer.innerHTML = '<div class="col-span-full text-center py-20"><i class="fas fa-exclamation-circle text-6xl text-red-500 mb-4"></i><p class="text-red-400 text-lg">Nie można załadować projektu. Sprawdź nazwę lub wróć do listy.</p></div>';
                 }
+            };
+
+            const getFieldIcon = (type) => {
+                const icons = {
+                    'string': 'fa-text-width',
+                    'bool': 'fa-toggle-on',
+                    'int': 'fa-hashtag',
+                    'float': 'fa-sliders-h',
+                    'enum': 'fa-list',
+                    'image': 'fa-image'
+                };
+                return icons[type] || 'fa-cube';
             };
 
             const renderFields = () => {
                 fieldsContainer.innerHTML = '';
                 fields.forEach(field => {
                     const fieldWrapper = document.createElement('div');
-                    fieldWrapper.className = 'bg-white p-4 rounded-lg shadow';
+                    fieldWrapper.className = 'bg-gradient-to-br from-gray-800 to-gray-900 p-5 rounded-xl shadow-xl border border-gray-700 hover:border-blue-500 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-500/20';
                     fieldWrapper.dataset.id = field.id;
 
                     let inputHtml = '';
-                    const isSettingsOpen = openSettings.has(field.id); // NEW LINE
+                    const isSettingsOpen = openSettings.has(field.id);
 
                     switch (field.type) {
                         case 'string':
                             inputHtml = `
-                                <div class="flex items-center gap-2 mt-2">
-                                    <input type="text" value="${field.value}" data-key="value" class="w-full p-2 border rounded bg-gray-50" readonly>
-                                    <button data-action="edit-multiline" class="bg-gray-200 p-2 rounded hover:bg-gray-300 whitespace-nowrap">Rozwiń</button>
+                                <div class="flex items-center gap-2 mt-3">
+                                    <input type="text" value="${field.value}" data-key="value" class="flex-1 p-2 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent" readonly>
+                                    <button data-action="edit-multiline" class="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg transition-all duration-200 whitespace-nowrap flex items-center gap-2">
+                                        <i class="fas fa-expand"></i>
+                                        Rozwiń
+                                    </button>
                                 </div>
                             `;
                             break;
                         case 'bool':
-                            inputHtml = `<input type="checkbox" ${field.value ? 'checked' : ''} data-key="value" class="h-6 w-6 mt-2">`;
+                            inputHtml = `
+                                <label class="relative inline-flex items-center cursor-pointer mt-3">
+                                    <input type="checkbox" ${field.value ? 'checked' : ''} data-key="value" class="sr-only peer">
+                                    <div class="w-14 h-7 bg-gray-700 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[4px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-blue-600"></div>
+                                    <span class="ml-3 text-sm font-medium text-gray-300">${field.value ? 'Włączone' : 'Wyłączone'}</span>
+                                </label>
+                            `;
                             break;
                         case 'int':
-                            inputHtml = `<input type="number" step="1" value="${field.value}" data-key="value" class="w-full p-2 border rounded mt-2">`;
+                            inputHtml = `<input type="number" step="1" value="${field.value}" data-key="value" class="w-full p-2 bg-gray-900 border border-gray-700 rounded-lg mt-3 text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent">`;
                             break;
                         case 'float':
                             const min = parseFloat(field.min) || 0;
                             const max = parseFloat(field.max) || 1;
                             const step = (max - min) / 100;
                             inputHtml = `
-                                <div class="mt-2">
+                                <div class="mt-3">
                                     <div class="flex justify-end">
-                                        <button data-action="toggle-settings" class="text-xs text-gray-500 hover:text-gray-800">Ustawienia</button>
+                                        <button data-action="toggle-settings" class="text-xs text-gray-400 hover:text-blue-400 transition-colors flex items-center gap-1">
+                                            <i class="fas fa-cog"></i>
+                                            Ustawienia
+                                        </button>
                                     </div>
-                                    <div class="float-settings ${isSettingsOpen ? '' : 'hidden'} mt-1"> <!-- CHANGED -->
-                                        <div class="flex items-center justify-between gap-2 mb-2">
-                                            <label class="text-sm w-full">Min: <input type="number" value="${min}" data-key="min" class="w-full p-1 border rounded"></label>
-                                            <label class="text-sm w-full">Max: <input type="number" value="${max}" data-key="max" class="w-full p-1 border rounded"></label>
+                                    <div class="float-settings ${isSettingsOpen ? '' : 'hidden'} mt-2 p-3 bg-gray-900/50 rounded-lg border border-gray-700">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <label class="text-sm w-full text-gray-300">
+                                                <span class="block mb-1">Min:</span>
+                                                <input type="number" value="${min}" data-key="min" class="w-full p-2 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 focus:ring-2 focus:ring-blue-500">
+                                            </label>
+                                            <label class="text-sm w-full text-gray-300">
+                                                <span class="block mb-1">Max:</span>
+                                                <input type="number" value="${max}" data-key="max" class="w-full p-2 bg-gray-900 border border-gray-700 rounded-lg text-gray-100 focus:ring-2 focus:ring-blue-500">
+                                            </label>
                                         </div>
                                     </div>
-                                    <input type="range" min="${min}" max="${max}" step="${step}" value="${field.value}" data-key="value" class="w-full">
-                                    <div class="text-center font-semibold mt-1">${field.value}</div>
+                                    <input type="range" min="${min}" max="${max}" step="${step}" value="${field.value}" data-key="value" class="w-full mt-2 accent-blue-500">
+                                    <div class="text-center font-bold text-xl mt-2 text-blue-400">${field.value}</div>
                                 </div>
                             `;
                             break;
@@ -147,49 +203,85 @@
                             const optionsHtml = field.options.map(opt => `<option value="${opt}" ${field.value === opt ? 'selected' : ''}>${opt}</option>`).join('');
                             const optionsText = field.options.join('\n');
                             inputHtml = `
-                                <div class="mt-2">
+                                <div class="mt-3">
                                     <div class="flex justify-end">
-                                        <button data-action="toggle-settings" class="text-xs text-gray-500 hover:text-gray-800">Ustawienia</button>
+                                        <button data-action="toggle-settings" class="text-xs text-gray-400 hover:text-blue-400 transition-colors flex items-center gap-1">
+                                            <i class="fas fa-cog"></i>
+                                            Ustawienia
+                                        </button>
                                     </div>
-                                    <div class="enum-settings ${isSettingsOpen ? '' : 'hidden'} mt-1"> <!-- CHANGED -->
-                                        <label class="text-sm w-full">Opcje (jedna na linię):
-                                            <textarea data-key="options" class="w-full p-1 border rounded mt-1 h-24 font-mono">${optionsText}</textarea>
+                                    <div class="enum-settings ${isSettingsOpen ? '' : 'hidden'} mt-2 p-3 bg-gray-900/50 rounded-lg border border-gray-700">
+                                        <label class="text-sm w-full text-gray-300">
+                                            <span class="block mb-1">Opcje (jedna na linię):</span>
+                                            <textarea data-key="options" class="w-full p-2 bg-gray-900 border border-gray-700 rounded-lg mt-1 h-24 font-mono text-gray-100 focus:ring-2 focus:ring-blue-500">${optionsText}</textarea>
                                         </label>
                                     </div>
-                                    <select data-key="value" class="w-full p-2 border rounded mt-2">
+                                    <select data-key="value" class="w-full p-2 bg-gray-900 border border-gray-700 rounded-lg mt-2 text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                                         ${optionsHtml}
                                     </select>
                                 </div>
                             `;
                             break;
                         case 'image':
-                            inputHtml = `<input type="file" accept="image/*" data-key="value" class="w-full mt-2">
-                                         ${field.value ? `<img src="${field.value}" class="mt-2 max-h-32">` : ''}`;
+                            inputHtml = `
+                                <div class="mt-3">
+                                    <input type="file" accept="image/*" data-key="value" class="w-full p-2 bg-gray-900 border border-gray-700 rounded-lg text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700">
+                                    ${field.value ? `<img src="${field.value}" class="mt-3 max-h-40 rounded-lg border border-gray-700">` : ''}
+                                </div>
+                            `;
                             break;
                     }
 
                     fieldWrapper.innerHTML = `
-                        <div class="flex justify-between items-center">
-                            <input type="text" value="${field.name}" data-key="name" class="text-lg font-bold w-full mr-2" placeholder="Nazwa pola...">
-                            <button data-action="delete" class="text-red-500 hover:text-red-700">Usuń</button>
+                        <div class="flex justify-between items-center mb-3">
+                            <div class="flex items-center gap-2 flex-1">
+                                <i class="fas ${getFieldIcon(field.type)} text-blue-400"></i>
+                                <input type="text" value="${field.name}" data-key="name" class="text-lg font-bold flex-1 bg-transparent border-b border-gray-700 focus:border-blue-500 text-gray-100 px-2 py-1 focus:outline-none transition-colors" placeholder="Nazwa pola...">
+                            </div>
+                            <button data-action="delete" class="text-red-400 hover:text-red-500 transition-colors ml-2">
+                                <i class="fas fa-trash text-lg"></i>
+                            </button>
+                        </div>
+                        <div class="text-xs text-gray-500 mb-2 flex items-center gap-1">
+                            <i class="fas fa-tag"></i>
+                            Typ: ${field.type}
                         </div>
                         ${inputHtml}
                     `;
                     fieldsContainer.appendChild(fieldWrapper);
                 });
-                
+
                 // Add the "Add New Field" card
                 const addFieldCard = document.createElement('div');
-                addFieldCard.className = 'bg-gray-50 p-4 rounded-lg shadow border-2 border-dashed border-gray-300 flex flex-col items-center justify-center min-h-[160px]';
+                addFieldCard.className = 'bg-gradient-to-br from-gray-800/50 to-gray-900/50 p-6 rounded-xl shadow-xl border-2 border-dashed border-gray-700 hover:border-blue-500 flex flex-col items-center justify-center min-h-[240px] transition-all duration-300 hover:shadow-blue-500/20';
                 addFieldCard.innerHTML = `
-                    <h2 class="text-lg font-bold text-gray-600 mb-3">Dodaj nowe pole</h2>
+                    <i class="fas fa-plus-circle text-5xl text-gray-600 mb-4"></i>
+                    <h2 class="text-lg font-bold text-gray-400 mb-4">Dodaj nowe pole</h2>
                     <div class="grid grid-cols-2 lg:grid-cols-3 gap-2 w-full">
-                        <button data-action="add" data-type="string" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">String</button>
-                        <button data-action="add" data-type="bool" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Boolean</button>
-                        <button data-action="add" data-type="int" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Int</button>
-                        <button data-action="add" data-type="float" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Float</button>
-                        <button data-action="add" data-type="enum" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Enum</button>
-                        <button data-action="add" data-type="image" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Image</button>
+                        <button data-action="add" data-type="string" class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-500/50">
+                            <i class="fas fa-text-width"></i>
+                            String
+                        </button>
+                        <button data-action="add" data-type="bool" class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-500/50">
+                            <i class="fas fa-toggle-on"></i>
+                            Boolean
+                        </button>
+                        <button data-action="add" data-type="int" class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-500/50">
+                            <i class="fas fa-hashtag"></i>
+                            Int
+                        </button>
+                        <button data-action="add" data-type="float" class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-500/50">
+                            <i class="fas fa-sliders-h"></i>
+                            Float
+                        </button>
+                        <button data-action="add" data-type="enum" class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-500/50">
+                            <i class="fas fa-list"></i>
+                            Enum
+                        </button>
+                        <button data-action="add" data-type="image" class="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-blue-500/50">
+                            <i class="fas fa-image"></i>
+                            Image
+                        </button>
                     </div>
                 `;
                 fieldsContainer.appendChild(addFieldCard);
@@ -200,9 +292,9 @@
                     let finalName = baseName;
                     let counter = 1;
                     const existingNames = new Set(fields.map(f => f.name.trim().replace(/[^a-zA-Z0-9]+/g, '_')));
-                    
+
                     let sanitizedFinalName = finalName.trim().replace(/[^a-zA-Z0-9]+/g, '_');
-                    if (!sanitizedFinalName) sanitizedFinalName = 'pole'; // handle empty base name
+                    if (!sanitizedFinalName) sanitizedFinalName = 'pole';
 
                     while (existingNames.has(sanitizedFinalName)) {
                         finalName = `${baseName}_${counter}`;
@@ -222,8 +314,8 @@
                     case 'string': newField.value = ''; break;
                     case 'bool': newField.value = false; break;
                     case 'int': newField.value = 0; break;
-                    case 'float': 
-                        newField.value = 0.5; 
+                    case 'float':
+                        newField.value = 0.5;
                         newField.min = 0;
                         newField.max = 1;
                         break;
@@ -240,7 +332,7 @@
 
             const getFieldById = (id) => fields.find(f => f.id === id);
 
-            fieldsContainer.addEventListener('change', (e) => { // NEW EVENT LISTENER
+            fieldsContainer.addEventListener('change', (e) => {
                 const target = e.target;
                 const fieldWrapper = target.closest('[data-id]');
                 if (!fieldWrapper) return;
@@ -271,13 +363,12 @@
 
                 if (!field || !key) return;
 
-                // --- Name validation --- 
                 if (key === 'name') {
                     const newName = target.value;
                     const sanitizedNewName = newName.trim().replace(/[^a-zA-Z0-9]+/g, '_');
 
-                    const isDuplicate = fields.some(f => 
-                        f.id !== fieldId && 
+                    const isDuplicate = fields.some(f =>
+                        f.id !== fieldId &&
                         f.name.trim().replace(/[^a-zA-Z0-9]+/g, '_') === sanitizedNewName
                     );
 
@@ -288,49 +379,52 @@
                     if (isDuplicate && sanitizedNewName) {
                         target.classList.add('border-red-500');
                         const warningMsg = document.createElement('p');
-                        warningMsg.className = 'text-red-500 text-xs mt-1 name-warning';
-                        warningMsg.textContent = 'Ta nazwa jest już używana.';
-                        target.after(warningMsg);
-                        return; // Stop processing and prevent saving
+                        warningMsg.className = 'text-red-400 text-xs mt-1 name-warning flex items-center gap-1';
+                        warningMsg.innerHTML = '<i class="fas fa-exclamation-triangle"></i>Ta nazwa jest już używana.';
+                        target.parentNode.after(warningMsg);
+                        return;
                     } else {
                         field.name = newName;
                     }
                 }
 
-                // Prevent direct input on readonly string fields or enum options textarea
-                if ((field.type === 'string' && key === 'value') || (field.type === 'enum' && key === 'options')) return; // CHANGED
+                if ((field.type === 'string' && key === 'value') || (field.type === 'enum' && key === 'options')) return;
 
                 if (field.type === 'bool' && key === 'value') {
                     field.value = target.checked;
+                    const label = target.parentElement.querySelector('span');
+                    if (label) label.textContent = target.checked ? 'Włączone' : 'Wyłączone';
                 } else if (field.type === 'image' && key === 'value') {
                     const file = target.files[0];
                     if (file) {
                         const reader = new FileReader();
                         reader.onload = (event) => {
                             field.value = event.target.result;
-                            renderFields(); 
+                            renderFields();
                             saveState();
                         };
                         reader.readAsDataURL(file);
-                        return; // Avoid double saving
+                        return;
                     }
-                } else if (key !== 'name') { // Update value if not name (name is handled above)
+                } else if (key !== 'name') {
                     field[key] = target.value;
                 }
-                
+
                 if (field.type === 'float' && key === 'value') {
-                    // Update the text display for the slider
                     target.nextElementSibling.textContent = target.value;
                 } else if (field.type === 'float' && (key === 'min' || key === 'max')) {
-                    renderFields(); // Re-render to update slider attributes
+                    renderFields();
                 }
 
                 saveState();
             });
 
             fieldsContainer.addEventListener('click', (e) => {
-                const action = e.target.dataset.action;
-                const fieldId = e.target.closest('[data-id]')?.dataset.id; // CHANGED
+                const button = e.target.closest('button');
+                if (!button) return;
+
+                const action = button.dataset.action;
+                const fieldId = button.closest('[data-id]')?.dataset.id;
 
                 if (action === 'delete') {
                     if (window.confirm('Czy na pewno chcesz usunąć to pole?')) {
@@ -339,7 +433,7 @@
                         saveState();
                     }
                 } else if (action === 'add') {
-                    const type = e.target.dataset.type;
+                    const type = button.dataset.type;
                     addField(type);
                 } else if (action === 'edit-multiline') {
                     const field = getFieldById(fieldId);
@@ -350,12 +444,12 @@
                         multilineModal.classList.add('flex');
                     }
                 } else if (action === 'toggle-settings') {
-                    if (openSettings.has(fieldId)) { // CHANGED
+                    if (openSettings.has(fieldId)) {
                         openSettings.delete(fieldId);
                     } else {
                         openSettings.add(fieldId);
                     }
-                    renderFields(); // CHANGED
+                    renderFields();
                 }
             });
 
@@ -387,10 +481,28 @@
 
                 const jsonString = JSON.stringify(configObject, null, 2);
                 navigator.clipboard.writeText(jsonString).then(() => {
-                    alert('Skonfigurowany JSON został skopiowany do schowka!');
+                    const originalText = exportJsonBtn.innerHTML;
+                    exportJsonBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Skopiowano!';
+                    setTimeout(() => {
+                        exportJsonBtn.innerHTML = originalText;
+                    }, 2000);
                 }).catch(err => {
                     console.error('Błąd kopiowania JSON: ', err);
                     alert('Nie udało się skopiować JSON.');
+                });
+            });
+
+            copyUrlBtn.addEventListener('click', () => {
+                const url = `${window.location.origin}/projects/${projectName}`;
+                const originalContent = copyUrlBtn.innerHTML;
+                navigator.clipboard.writeText(url).then(() => {
+                    copyUrlBtn.innerHTML = '<i class="fas fa-check mr-2"></i>Skopiowano!';
+                    setTimeout(() => {
+                        copyUrlBtn.innerHTML = originalContent;
+                    }, 2000);
+                }).catch(err => {
+                    alert('Nie udało się skopiować adresu URL.');
+                    console.error('Copy failed', err);
                 });
             });
 
