@@ -1,11 +1,14 @@
+require('dotenv').config();
 const express = require('express');
 const fs = require('fs').promises;
 const path = require('path');
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT || 3000;
 
-const projectsDir = path.join(__dirname, 'projects');
+const projectsDir = process.env.PROJECTS_DIR
+    ? path.resolve(process.env.PROJECTS_DIR)
+    : path.join(__dirname, 'projects');
 const publicDir = path.join(__dirname, 'public');
 
 // Middleware
